@@ -1,0 +1,24 @@
+version: '2.1'
+services:
+    backend:
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        volumes:
+            - /app/node_modules
+            - ./backend:/app
+        ports:
+            - '8081:8081'
+        depends_on:
+            - "mongo"
+        restart: on-failure
+        container_name: backend
+    mongo:
+        image: mongo
+        restart: always
+        ports:
+            - '27017-27019:27017-27019'
+        container_name: mongo-db
+networks:
+    default:
+        name: minesweeper-network
