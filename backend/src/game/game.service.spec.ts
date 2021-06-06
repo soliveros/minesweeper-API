@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CreateGameDto } from './dto/create-game.dto';
 import { GameService } from './game.service';
 
 describe('GameService', () => {
@@ -10,6 +11,10 @@ describe('GameService', () => {
     }).compile();
 
     service = module.get<GameService>(GameService);
+    let createGameDto: CreateGameDto = new CreateGameDto();
+    createGameDto.rowsQuantity = 3;
+    createGameDto.columnsQuantity = 3;
+    service.create(createGameDto);
   });
 
   it('should be defined', () => {
