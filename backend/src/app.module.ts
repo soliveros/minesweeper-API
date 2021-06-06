@@ -7,8 +7,13 @@ import {
 import {
   GameModule
 } from './game/game.module';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import {
+  MongooseModule
+} from '@nestjs/mongoose';
+import {
+  ConfigModule,
+  ConfigService
+} from '@nestjs/config';
 import dbConfig from 'src/config/db.configuration';
 
 @Module({
@@ -19,7 +24,7 @@ import dbConfig from 'src/config/db.configuration';
         dbConfig,
       ],
     }),
-    UserModule, 
+    //UserModule - Not implemented yet,
     GameModule,
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
