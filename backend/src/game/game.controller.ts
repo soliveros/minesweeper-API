@@ -1,14 +1,25 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { GameService } from './game.service';
-import { CreateGameDto } from './dto/create-game.dto';
-import { UpdateGameDto } from './dto/update-game.dto';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete
+} from '@nestjs/common';
+import {
+  GameService
+} from './game.service';
+import {
+  CreateGameDto
+} from './dto/create-game.dto';
 
 @Controller('game')
 export class GameController {
   constructor(private readonly gameService: GameService) {}
 
-  @Post()
-  create(@Body() createGameDto: CreateGameDto) {
+  @Post('/new')
+  async create(@Body() createGameDto: CreateGameDto) {
     return this.gameService.create(createGameDto);
   }
 
@@ -18,17 +29,20 @@ export class GameController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.gameService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    const findGame = await this.gameService.findOne(id);
+    return findGame;
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateGameDto: UpdateGameDto) {
-    return this.gameService.update(+id, updateGameDto);
+  @Patch(':id/reveal/row/:row/col/:col')
+  async revealCell(@Param('id') id: string, @Param('row') row: number, @Param('col') col: number) {
+    console.log(id, row, col);
+    const updatedGame = await this.gameService.revealCell(id, row, col);
+    return updatedGame;
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.gameService.remove(+id);
+    return this.gameService.remove(id);
   }
 }
