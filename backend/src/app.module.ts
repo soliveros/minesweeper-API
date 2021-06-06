@@ -18,8 +18,12 @@ import {
   ConfigService
 } from '@nestjs/config';
 import dbConfig from 'src/config/db.configuration';
-import { HttpExceptionFilter } from './exceptions/http-exception.filter';
-import { LoggerModule } from './logger.module';
+import {
+  HttpExceptionFilter
+} from './exceptions/http-exception.filter';
+import {
+  LoggerModule
+} from './logger.module';
 
 @Module({
   providers: [{
