@@ -1,4 +1,7 @@
 import {
+  APP_FILTER
+} from '@nestjs/core';
+import {
   Module
 } from '@nestjs/common';
 import {
@@ -15,8 +18,14 @@ import {
   ConfigService
 } from '@nestjs/config';
 import dbConfig from 'src/config/db.configuration';
+import { HttpExceptionFilter } from './exceptions/http-exception.filter';
+import { LoggerModule } from './logger.module';
 
 @Module({
+  providers: [{
+    provide: APP_FILTER,
+    useClass: HttpExceptionFilter,
+  }],
   imports: [
     ConfigModule.forRoot({
       isGlobal: false,
@@ -24,6 +33,7 @@ import dbConfig from 'src/config/db.configuration';
         dbConfig,
       ],
     }),
+    LoggerModule,
     //UserModule - Not implemented yet,
     GameModule,
     MongooseModule.forRootAsync({
@@ -36,6 +46,5 @@ import dbConfig from 'src/config/db.configuration';
     }),
   ],
   controllers: [],
-  providers: [],
 })
 export class AppModule {}
