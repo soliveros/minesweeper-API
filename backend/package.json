@@ -27,10 +27,12 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/mongoose": "^7.2.4",
     "@nestjs/platform-express": "^7.5.1",
+    "@nestjs/swagger": "^4.8.0",
     "mongoose": "^5.12.13",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
-    "rxjs": "^6.6.3"
+    "rxjs": "^6.6.3",
+    "swagger-ui-express": "^4.1.6"
   },
   "devDependencies": {
     "@nestjs/cli": "^7.5.1",
