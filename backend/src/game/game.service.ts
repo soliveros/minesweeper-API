@@ -220,8 +220,8 @@ export class GameService {
       var col = Math.floor(Math.random() * hideBoard[0].length);
       if (hideBoard[row][col] != 9) {
         hideBoard[row][col] = 9;
-        for (let i = this.max(0, row - 1); i <= this.min(hideBoard.length - 1, row + 1); i++) {
-          for (let j = this.max(0, col - 1); j <= this.min(hideBoard[0].length - 1, col + 1); j++) {
+        for (let i = Math.max(0, row - 1); i <= Math.min(hideBoard.length - 1, row + 1); i++) {
+          for (let j = Math.max(0, col - 1); j <= Math.min(hideBoard[0].length - 1, col + 1); j++) {
             if (hideBoard[i][j] != 9) {
               hideBoard[i][j] = hideBoard[i][j] + 1
             }
@@ -241,9 +241,10 @@ export class GameService {
     if (visibleBoard[row][col] == false) {
       visibleBoard[row][col] = true;
       if (hideBoard[row][col] == 0) {
-        for (let i = this.max(0, row - 1); i <= this.min(hideBoard.length - 1, row + 1); i++) {
-          for (let j = this.max(0, col - 1); j <= this.min(hideBoard[0].length - 1, col + 1); j++) {
+        for (let i = Math.max(row - 1, 0); i <= Math.min(row + 1, hideBoard.length - 1); i++) {
+          for (let j = Math.max(col - 1,0); j <= Math.min(col + 1, hideBoard[0].length - 1); j++) {
             if (hideBoard[i][j] != 9) {
+              console.log('REVELING CELL' + i +',' + j);
               this.recursiveRevealCell(hideBoard, visibleBoard, i, j);
             }
           }
@@ -273,7 +274,6 @@ export class GameService {
       visibleBoard[row][col] = true
       return -1
     } else {
-      this.recursiveRevealCell(hideBoard, visibleBoard, row, col);
       return this.countRevealedCells(visibleBoard);
     }
   }
@@ -302,19 +302,4 @@ export class GameService {
     }
     return displayedBoard;
   }
-
-  max(num1: number, num2: number): number {
-    if (num1 > num2) return num1;
-    if (num2 > num1) return num2;
-    if (num1 == num2) return num1;
-  }
-
-  min(num1: number, num2: number): number {
-    if (num1 < num2) return num1;
-    if (num2 < num1) return num2;
-    if (num1 == num2) return num1;
-  }
-
-
-
 }
