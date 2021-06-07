@@ -29,7 +29,7 @@ export class Game {
 
     @Prop({
         required: true,
-        enum: ['running', 'paused', 'won', 'lost']
+        enum: ['running', 'pause', 'won', 'lost']
     })
     status: string;
 
@@ -48,6 +48,12 @@ export class Game {
         default: new Date()
     })
     creationDate: Date
+
+    @Prop()
+    flaggedCell: {
+        row: number,
+        col: number
+    }[]
 }
 
 export const GameSchema = SchemaFactory.createForClass(Game);

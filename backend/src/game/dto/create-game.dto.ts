@@ -1,16 +1,40 @@
-import { ApiProperty } from '@nestjs/swagger';
+import {
+    ApiProperty
+} from '@nestjs/swagger';
+import {
+    Max,
+    Min,
+    IsString,
+    IsNotEmpty
+} from 'class-validator';
 
 export class CreateGameDto {
-    @ApiProperty({ example: 10, description: 'Number of rows for Minesweeper board.' })
+    @ApiProperty({
+        example: 10,
+        description: 'Number of rows for Minesweeper board. (Min: 5 - Max: 50)'
+    })
+    @IsNotEmpty()
+    @Max(50)
+    @Min(5)
     rowsQuantity: number;
 
-    @ApiProperty({ example: 10, description: 'Number of columns for Minesweeper board.' })
+    @ApiProperty({
+        example: 10,
+        description: 'Number of columns for Minesweeper board. (Min: 5 - Max: 50)'
+    })
+    @IsNotEmpty()
+    @Max(50)
+    @Min(5)
     columnsQuantity: number;
 
-    @ApiProperty({ example: 'soliveros', description: 'Username for player.' })
+    @ApiProperty({
+        example: 'soliveros',
+        description: 'Username for player.'
+    })
+    @IsNotEmpty()
+    @IsString()
     username: string;
-    
     status: string;
     hideBoard: number[][];
-    visibleBoard: boolean[][];    
+    visibleBoard: boolean[][];
 }
