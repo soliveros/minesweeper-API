@@ -21,9 +21,7 @@ import * as mongoose from 'mongoose';
 
 @Injectable()
 export class GameService {
-  constructor(@InjectModel(Game.name) private gameModel: Model < GameDocument > ) {
-
-  }
+  constructor(@InjectModel(Game.name) private gameModel: Model < GameDocument > ) {}
 
   async create(createGameDto: CreateGameDto): Promise < any > {
     createGameDto.hideBoard = this.generateHideBoard(createGameDto.rowsQuantity, createGameDto.rowsQuantity);
@@ -43,6 +41,8 @@ export class GameService {
   }
 
   async revealCell(id: string, row: number, col: number): Promise < any > {
+    let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
+    if (!idValid) throw new Error('Game not found!')
     let game: GameDocument = await this.gameModel.findOne({
       _id: id
     }).exec();
@@ -53,7 +53,7 @@ export class GameService {
     let gameResult: number = this.checkBoards(game.hideBoard, game.visibleBoard, row, col)
     if (gameResult == -1) {
       game.status = 'lost';
-    } else if (gameResult == ((game.rowsQuantity * game.columnsQuantity) - 
+    } else if (gameResult == ((game.rowsQuantity * game.columnsQuantity) -
         this.calculateMines(game.rowsQuantity, game.columnsQuantity))) {
       game.status = 'won';
     }
@@ -63,6 +63,56 @@ export class GameService {
       creationDate: updatedGame.creationDate,
       status: updatedGame.status,
       board: this.getDisplayedBoard(updatedGame.hideBoard, updatedGame.visibleBoard).map(String),
+      //hideBoard: updatedGame.hideBoard.map(String),
+      //visibleBoard: updatedGame.visibleBoard.map(String)
+    };
+  }
+
+  async flagCell(id: string, row: number, col: number) {
+    let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
+    if (!idValid) throw new Error('Game not found!')
+    let game: GameDocument = await this.gameModel.findOne({
+      _id: id
+    }).exec();
+    if (!game) return 'Game not found!'
+    const cell = {
+      row: row,
+      col: col
+    };
+    
+    let includeFlaggedCell: boolean = false;
+    for (const flagedCell of game.flaggedCell) {
+      if(flagedCell.row == cell.row && flagedCell.col == cell.col) {
+        includeFlaggedCell = true;
+      } 
+    }
+
+    if (includeFlaggedCell) {
+      game.flaggedCell = game.flaggedCell.filter(({
+        row,
+        col
+      }) => (row != cell.row && col != cell.col));
+    } else {
+      game.flaggedCell.push(cell);
+    }
+    const updatedGame = await this.gameModel.findOneAndUpdate({
+        _id: id
+      }, {
+        $set: {
+          flaggedCell: game.flaggedCell,
+        }
+      }, {
+        new: true
+      })
+      .exec();
+
+
+
+    return {
+      gameId: updatedGame._id,
+      creationDate: updatedGame.creationDate,
+      status: updatedGame.status,
+      board: this.getDisplayedBoard(updatedGame.hideBoard, updatedGame.visibleBoard, updatedGame.flaggedCell).map(String),
       //hideBoard: updatedGame.hideBoard.map(String),
       //visibleBoard: updatedGame.visibleBoard.map(String)
     };
@@ -81,54 +131,47 @@ export class GameService {
   }
 
   async findOne(id: string): Promise < any > {
-    let isValid: boolean = mongoose.Types.ObjectId.isValid(id);
-    if (isValid) {
-      const game = await this.gameModel.findOne({
-        _id: id
-      }).exec();
-      if (game) {
-        return {
-          gameId: game._id,
-          creationDate: game.creationDate,
-          board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard).map(String)
-        }
-      } else {
-        return 'Game not found!'
+    let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
+    if (!idValid) throw new Error('Game not found!')
+    const game = await this.gameModel.findOne({
+      _id: id
+    }).exec();
+    if (game) {
+      return {
+        gameId: game._id,
+        creationDate: game.creationDate,
+        board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard).map(String)
       }
     } else {
-      return 'Game not found!'
+      let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
+      if (!idValid) throw new Error('Game not found!')
     }
   }
 
   async update(id: string, updateGame: UpdateGameDto | GameDocument): Promise < any > {
-    let isValid: boolean = mongoose.Types.ObjectId.isValid(id);
-    if (isValid) {
-      return this.gameModel.findOneAndUpdate({
-          _id: id
-        }, {
-          $set: {
-            status: updateGame.status,
-            hideBoard: updateGame.hideBoard,
-            visibleBoard: updateGame.visibleBoard
-          }
-        }, {
-          new: true
-        })
-        .exec();
-    } else {
-      return 'Game not found!'
-    }
+    let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
+    if (!idValid) throw new Error('Game not found!')
+    return this.gameModel.findOneAndUpdate({
+        _id: id
+      }, {
+        $set: {
+          status: updateGame.status,
+          hideBoard: updateGame.hideBoard,
+          visibleBoard: updateGame.visibleBoard
+        }
+      }, {
+        new: true
+      })
+      .exec();
   }
 
-  remove(id: string) {
-    let isValid: boolean = mongoose.Types.ObjectId.isValid(id);
-    if (isValid) {
-      return this.gameModel.remove({
-        _id: id
-      }).exec();
-    } else {
-      return 'Game not found!'
-    }
+  async remove(id: string) {
+    let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
+    if (!idValid) throw new Error('Game not found!')
+    return this.gameModel.remove({
+      _id: id
+    }).exec();
+
   }
 
   generateHideBoard(rows: number, columns: number): number[][] {
@@ -219,7 +262,10 @@ export class GameService {
     }
   }
 
-  getDisplayedBoard(hideBoard: number[][], visibleBoard: boolean[][]): string[][] {
+  getDisplayedBoard(hideBoard: number[][], visibleBoard: boolean[][], flaggedCell ? : {
+    row: number,
+    col: number
+  } []): string[][] {
     let displayedBoard: string[][] = [];
     for (let i = 0; i < visibleBoard.length; i++) {
       displayedBoard[i] = []
@@ -232,6 +278,11 @@ export class GameService {
           displayedBoard[i][j] = hideBoard[i][j].toString();
         }
       }
+    }
+    if (flaggedCell) {
+      flaggedCell.forEach(cell => {
+        displayedBoard[cell.row][cell.col] = '?'
+      });
     }
     return displayedBoard;
   }

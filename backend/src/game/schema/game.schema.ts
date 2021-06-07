@@ -48,6 +48,12 @@ export class Game {
         default: new Date()
     })
     creationDate: Date
+
+    @Prop()
+    flaggedCell: {
+        row: number,
+        col: number
+    }[]
 }
 
 export const GameSchema = SchemaFactory.createForClass(Game);

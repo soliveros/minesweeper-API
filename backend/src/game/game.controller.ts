@@ -88,6 +88,20 @@ export class GameController {
     }
   }
 
+  @Patch(':id/flag/row/:row/col/:col')
+  async flagCell(@Param() params: RevealCellParams) {
+    try {
+      const updatedGame = await this.gameService.flagCell(params.id, params.row, params.col);
+      const message = "Cell flagged successfully.";
+      return {
+        message: message,
+        data: updatedGame
+      }
+    } catch (e) {
+      throw new HttpCustomException('GC-004', 'Error finding one game. ' + e.stack, {});
+    }
+  }
+
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
