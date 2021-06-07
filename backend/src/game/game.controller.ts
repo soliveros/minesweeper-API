@@ -6,7 +6,8 @@ import {
   Patch,
   Param,
   Delete,
-  UseInterceptors
+  UseInterceptors,
+  UsePipes
 } from '@nestjs/common';
 import {
   GameService
@@ -20,9 +21,13 @@ import {
 import {
   ResponseInterceptor
 } from 'src/interceptors/response.interceptor';
+import {
+  ValidationPipe
+} from 'src/validators/validation.pipe';
 
 @Controller('game')
 @UseInterceptors(new ResponseInterceptor())
+@UsePipes(new ValidationPipe())
 export class GameController {
   constructor(private readonly gameService: GameService) {}
 
