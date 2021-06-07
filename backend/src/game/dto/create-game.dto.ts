@@ -11,7 +11,7 @@ import {
 export class CreateGameDto {
     @ApiProperty({
         example: 10,
-        description: 'Number of rows for Minesweeper board.'
+        description: 'Number of rows for Minesweeper board. (Min: 5 - Max: 50)'
     })
     @IsNotEmpty()
     @Max(50)
@@ -20,7 +20,7 @@ export class CreateGameDto {
 
     @ApiProperty({
         example: 10,
-        description: 'Number of columns for Minesweeper board.'
+        description: 'Number of columns for Minesweeper board. (Min: 5 - Max: 50)'
     })
     @IsNotEmpty()
     @Max(50)
@@ -34,7 +34,6 @@ export class CreateGameDto {
     @IsNotEmpty()
     @IsString()
     username: string;
-
     status: string;
     hideBoard: number[][];
     visibleBoard: boolean[][];
