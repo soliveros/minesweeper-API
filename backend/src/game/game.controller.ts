@@ -24,6 +24,7 @@ import {
 import {
   ValidationPipe
 } from 'src/validators/validation.pipe';
+import { RevealCellParams } from './dto/reveal-cell-params.dto';
 
 @Controller('game')
 @UseInterceptors(new ResponseInterceptor())
@@ -74,9 +75,9 @@ export class GameController {
   }
 
   @Patch(':id/reveal/row/:row/col/:col')
-  async revealCell(@Param('id') id: string, @Param('row') row: number, @Param('col') col: number) {
+  async revealCell(@Param() params: RevealCellParams) {
     try {
-      const updatedGame = await this.gameService.revealCell(id, row, col);
+      const updatedGame = await this.gameService.revealCell(params.id, params.row, params.col);
       const message = "Cell revealed successfully.";
       return {
         message: message,
