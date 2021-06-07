@@ -22,6 +22,8 @@ import * as mongoose from 'mongoose';
 @Injectable()
 export class GameService {
   private stoppedStatus = ['won', 'lost', 'pause']
+  private visibleBoard: boolean[][] = [];
+  private hideBoard: number[][] = [];
 
   constructor(@InjectModel(Game.name) private gameModel: Model < GameDocument > ) {}
 
@@ -58,11 +60,11 @@ export class GameService {
     if(col > (game.columnsQuantity - 1)) 
     throw new Error ('Max. value for col in this game is ' +  (game.columnsQuantity - 1).toString())
 
-    const boards = this.recursiveRevealCell(game.hideBoard, game.visibleBoard, row, col)
-    game.hideBoard = boards.hideBoard;
-    game.visibleBoard = boards.visibleBoard;
+    this.visibleBoard = game.visibleBoard;
+    this.hideBoard = game.hideBoard;
+    this.recursiveRevealCell(row, col)
 
-    let gameResult: number = this.checkBoards(game.hideBoard, game.visibleBoard, row, col)
+    let gameResult: number = this.checkBoards(row, col)
     if (gameResult == -1) {
       game.status = 'lost';
     } else if (gameResult == ((game.rowsQuantity * game.columnsQuantity) -
@@ -220,8 +222,8 @@ export class GameService {
       var col = Math.floor(Math.random() * hideBoard[0].length);
       if (hideBoard[row][col] != 9) {
         hideBoard[row][col] = 9;
-        for (let i = this.max(0, row - 1); i <= this.min(hideBoard.length - 1, row + 1); i++) {
-          for (let j = this.max(0, col - 1); j <= this.min(hideBoard[0].length - 1, col + 1); j++) {
+        for (let i = Math.max(0, row - 1); i <= Math.min(hideBoard.length - 1, row + 1); i++) {
+          for (let j = Math.max(0, col - 1); j <= Math.min(hideBoard[0].length - 1, col + 1); j++) {
             if (hideBoard[i][j] != 9) {
               hideBoard[i][j] = hideBoard[i][j] + 1
             }
@@ -237,30 +239,26 @@ export class GameService {
     return Math.trunc((x * y) / 10);
   }
 
-  recursiveRevealCell(hideBoard: number[][], visibleBoard: boolean[][], row: number, col: number) {
-    if (visibleBoard[row][col] == false) {
-      visibleBoard[row][col] = true;
-      if (hideBoard[row][col] == 0) {
-        for (let i = this.max(0, row - 1); i <= this.min(hideBoard.length - 1, row + 1); i++) {
-          for (let j = this.max(0, col - 1); j <= this.min(hideBoard[0].length - 1, col + 1); j++) {
-            if (hideBoard[i][j] != 9) {
-              this.recursiveRevealCell(hideBoard, visibleBoard, i, j);
+  recursiveRevealCell(row: number, col: number) {
+    if (this.visibleBoard[row][col] == false) {
+      this.visibleBoard[row][col] = true;
+      if (this.hideBoard[row][col] == 0) {
+        for (let i = Math.max(row - 1, 0); i <= Math.min(row + 1, this.hideBoard.length - 1); i++) {
+          for (let j = Math.max(col - 1,0); j <= Math.min(col + 1, this.hideBoard[0].length - 1); j++) {
+            if (this.hideBoard[i][j] != 9) {
+              this.recursiveRevealCell(i, j);
             }
           }
         }
       }
     }
-    return {
-      hideBoard: hideBoard,
-      visibleBoard: visibleBoard
-    }
   }
 
-  countRevealedCells(visibleBoard: boolean[][]): number {
+  countRevealedCells(): number {
     let countVisibleCell = 0;
-    for (let i = 0; i < visibleBoard.length; i++) {
-      for (let j = 0; j < visibleBoard[0].length; j++) {
-        if (visibleBoard[i][j] == true) {
+    for (let i = 0; i < this.visibleBoard.length; i++) {
+      for (let j = 0; j < this.visibleBoard[0].length; j++) {
+        if (this.visibleBoard[i][j] == true) {
           countVisibleCell++;
         }
       }
@@ -268,13 +266,12 @@ export class GameService {
     return countVisibleCell;
   }
 
-  checkBoards(hideBoard: number[][], visibleBoard: boolean[][], row, col): number {
-    if (hideBoard[row][col] == 9) {
-      visibleBoard[row][col] = true
+  checkBoards(row, col): number {
+    if (this.hideBoard[row][col] == 9) {
+      this.visibleBoard[row][col] = true
       return -1
     } else {
-      this.recursiveRevealCell(hideBoard, visibleBoard, row, col);
-      return this.countRevealedCells(visibleBoard);
+      return this.countRevealedCells();
     }
   }
 
@@ -302,19 +299,4 @@ export class GameService {
     }
     return displayedBoard;
   }
-
-  max(num1: number, num2: number): number {
-    if (num1 > num2) return num1;
-    if (num2 > num1) return num2;
-    if (num1 == num2) return num1;
-  }
-
-  min(num1: number, num2: number): number {
-    if (num1 < num2) return num1;
-    if (num2 < num1) return num2;
-    if (num1 == num2) return num1;
-  }
-
-
-
 }
