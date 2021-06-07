@@ -29,7 +29,7 @@ export class Game {
 
     @Prop({
         required: true,
-        enum: ['running', 'paused', 'won', 'lost']
+        enum: ['running', 'pause', 'won', 'lost']
     })
     status: string;
 

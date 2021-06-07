@@ -21,6 +21,8 @@ import * as mongoose from 'mongoose';
 
 @Injectable()
 export class GameService {
+  private stoppedStatus = ['won', 'lost', 'pause']
+
   constructor(@InjectModel(Game.name) private gameModel: Model < GameDocument > ) {}
 
   async create(createGameDto: CreateGameDto): Promise < any > {
@@ -33,7 +35,7 @@ export class GameService {
       gameId: createdGame._id,
       creationDate: createdGame.creationDate,
       status: createdGame.status,
-      board: this.getDisplayedBoard(createdGame.hideBoard, createdGame.visibleBoard).map(String),
+      board: this.getDisplayedBoard(createdGame.hideBoard, createdGame.visibleBoard, createdGame.flaggedCell).map(String),
       username: createdGame.username,
       //hideBoard: createdGame.hideBoard.map(String),
       //visibleBoard: createdGame.visibleBoard.map(String)
@@ -42,10 +44,20 @@ export class GameService {
 
   async revealCell(id: string, row: number, col: number): Promise < any > {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
-    if (!idValid) throw new Error('Game not found!')
+    if (!idValid) throw new Error('Game not found!.')
     let game: GameDocument = await this.gameModel.findOne({
       _id: id
     }).exec();
+    if (!game) throw new Error('Game not found!.')
+    if(this.stoppedStatus.includes(game.status)) {
+      throw new Error('You cannot play a game in '+ game.status +' status.')
+    }
+    if(row > (game.rowsQuantity - 1)) 
+    throw new Error ('Max. value for row in this game is ' +  (game.rowsQuantity - 1).toString())
+ 
+    if(col > (game.columnsQuantity - 1)) 
+    throw new Error ('Max. value for col in this game is ' +  (game.columnsQuantity - 1).toString())
+
     const boards = this.recursiveRevealCell(game.hideBoard, game.visibleBoard, row, col)
     game.hideBoard = boards.hideBoard;
     game.visibleBoard = boards.visibleBoard;
@@ -62,7 +74,7 @@ export class GameService {
       gameId: updatedGame._id,
       creationDate: updatedGame.creationDate,
       status: updatedGame.status,
-      board: this.getDisplayedBoard(updatedGame.hideBoard, updatedGame.visibleBoard).map(String),
+      board: this.getDisplayedBoard(updatedGame.hideBoard, updatedGame.visibleBoard, game.flaggedCell).map(String),
       //hideBoard: updatedGame.hideBoard.map(String),
       //visibleBoard: updatedGame.visibleBoard.map(String)
     };
@@ -70,23 +82,29 @@ export class GameService {
 
   async flagCell(id: string, row: number, col: number) {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
-    if (!idValid) throw new Error('Game not found!')
+    if (!idValid) throw new Error('Game not found!.')
     let game: GameDocument = await this.gameModel.findOne({
       _id: id
     }).exec();
-    if (!game) return 'Game not found!'
+    if (!game) throw new Error('Game not found!.')
+    if(this.stoppedStatus.includes(game.status)) {
+      throw new Error('You cannot play a game in '+ game.status +' status.')
+    }
+    if(row > (game.rowsQuantity - 1)) 
+    throw new Error ('Max. value for row in this game is ' +  (game.rowsQuantity - 1).toString())
+ 
+    if(col > (game.columnsQuantity - 1)) 
+    throw new Error ('Max. value for col in this game is ' +  (game.columnsQuantity - 1).toString())
     const cell = {
       row: row,
       col: col
     };
-    
     let includeFlaggedCell: boolean = false;
     for (const flagedCell of game.flaggedCell) {
       if(flagedCell.row == cell.row && flagedCell.col == cell.col) {
         includeFlaggedCell = true;
       } 
     }
-
     if (includeFlaggedCell) {
       game.flaggedCell = game.flaggedCell.filter(({
         row,
@@ -106,8 +124,6 @@ export class GameService {
       })
       .exec();
 
-
-
     return {
       gameId: updatedGame._id,
       creationDate: updatedGame.creationDate,
@@ -124,7 +140,7 @@ export class GameService {
       return {
         gameId: game._id,
         creationDate: game.creationDate,
-        board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard).map(String)
+        board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard, game.flaggedCell).map(String)
       }
     });
     return games
@@ -132,7 +148,7 @@ export class GameService {
 
   async findOne(id: string): Promise < any > {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
-    if (!idValid) throw new Error('Game not found!')
+    if (!idValid) throw new Error('Game not found!.')
     const game = await this.gameModel.findOne({
       _id: id
     }).exec();
@@ -140,17 +156,17 @@ export class GameService {
       return {
         gameId: game._id,
         creationDate: game.creationDate,
-        board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard).map(String)
+        board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard, game.flaggedCell).map(String)
       }
     } else {
       let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
-      if (!idValid) throw new Error('Game not found!')
+      if (!idValid) throw new Error('Game not found!.')
     }
   }
 
   async update(id: string, updateGame: UpdateGameDto | GameDocument): Promise < any > {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
-    if (!idValid) throw new Error('Game not found!')
+    if (!idValid) throw new Error('Game not found!.')
     return this.gameModel.findOneAndUpdate({
         _id: id
       }, {
@@ -167,7 +183,7 @@ export class GameService {
 
   async remove(id: string) {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
-    if (!idValid) throw new Error('Game not found!')
+    if (!idValid) throw new Error('Game not found!.')
     return this.gameModel.remove({
       _id: id
     }).exec();
@@ -262,7 +278,7 @@ export class GameService {
     }
   }
 
-  getDisplayedBoard(hideBoard: number[][], visibleBoard: boolean[][], flaggedCell ? : {
+  getDisplayedBoard(hideBoard: number[][], visibleBoard: boolean[][], flaggedCell : {
     row: number,
     col: number
   } []): string[][] {
