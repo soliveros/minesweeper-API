@@ -42,7 +42,7 @@ export class GameController {
         data: createdGame
       }
     } catch (e) {
-      throw new HttpCustomException('GC-001', 'Error creating game. ' + e.stack, {});
+      throw new HttpCustomException('GC-001', 'Error creating game. ' + e.message, {});
     }
   }
 
@@ -56,7 +56,7 @@ export class GameController {
         data: games
       }
     } catch (e) {
-      throw new HttpCustomException('GC-002', 'Error finding games. ' + e.stack, {});
+      throw new HttpCustomException('GC-002', 'Error finding games. ' + e.message, {});
     }
   }
 
@@ -70,7 +70,7 @@ export class GameController {
         data: findGame
       }
     } catch (e) {
-      throw new HttpCustomException('GC-003', 'Error finding one game. ' + e.stack, {});
+      throw new HttpCustomException('GC-003', 'Error finding one game. ' + e.message, {});
     }
   }
 
@@ -84,7 +84,7 @@ export class GameController {
         data: updatedGame
       }
     } catch (e) {
-      throw new HttpCustomException('GC-004', 'Error finding one game. ' + e.stack, {});
+      throw new HttpCustomException('GC-004', 'Error revealing a cell. ' + e.message, {});
     }
   }
 
@@ -98,7 +98,7 @@ export class GameController {
         data: updatedGame
       }
     } catch (e) {
-      throw new HttpCustomException('GC-004', 'Error finding one game. ' + e.stack, {});
+      throw new HttpCustomException('GC-004', 'Error flagging a cell. ' + e.message, {});
     }
   }
 
@@ -112,7 +112,7 @@ export class GameController {
         data: removedGame
       }
     } catch (e) {
-      throw new HttpCustomException('GC-005', 'Error finding one game. ' + e.stack, {});
+      throw new HttpCustomException('GC-005', 'Error deleting a game. ' + e.message, {});
     }
   }
 }
