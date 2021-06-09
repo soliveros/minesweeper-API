@@ -5,7 +5,8 @@ import {
     Max,
     Min,
     IsString,
-    IsNotEmpty
+    IsNotEmpty,
+    IsInt
 } from 'class-validator';
 
 export class CreateGameDto {
@@ -16,6 +17,7 @@ export class CreateGameDto {
     @IsNotEmpty()
     @Max(50)
     @Min(5)
+    @IsInt()
     rowsQuantity: number;
 
     @ApiProperty({
@@ -25,6 +27,7 @@ export class CreateGameDto {
     @IsNotEmpty()
     @Max(50)
     @Min(5)
+    @IsInt()
     columnsQuantity: number;
 
     @ApiProperty({
@@ -39,6 +42,8 @@ export class CreateGameDto {
         example: 10,
         description: 'Number of mines (Optional parameter). If it is not provided, it will be auto-generated.'
     })
+    @Min(1)
+    @IsInt()
     minesQuantity: number;
     status: string;
     hideBoard: number[][];

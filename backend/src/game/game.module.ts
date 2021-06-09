@@ -14,10 +14,13 @@ import {
   Game,
   GameSchema
 } from './schema/game.schema';
+import {
+  GameRepository
+} from './game.repository';
 
 @Module({
   controllers: [GameController],
-  providers: [GameService],
+  providers: [GameService, GameRepository],
   imports: [
     MongooseModule.forFeature([{
       name: Game.name,
