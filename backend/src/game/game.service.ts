@@ -2,22 +2,21 @@ import {
   Injectable
 } from '@nestjs/common';
 import {
-  InjectModel
-} from '@nestjs/mongoose';
-import {
-  Model
-} from 'mongoose';
-import {
   CreateGameDto
 } from './dto/create-game.dto';
 import {
   UpdateGameDto
 } from './dto/update-game.dto';
 import {
-  Game,
   GameDocument
 } from './schema/game.schema';
 import * as mongoose from 'mongoose';
+import {
+  GameRepository
+} from './game.repository';
+import {
+  GameResponseDto
+} from './dto/game-response.dto';
 
 @Injectable()
 export class GameService {
@@ -25,9 +24,9 @@ export class GameService {
   private visibleBoard: boolean[][] = [];
   private hideBoard: number[][] = [];
 
-  constructor(@InjectModel(Game.name) private gameModel: Model < GameDocument > ) {}
+  constructor(private readonly gameRepository: GameRepository) {}
 
-  async create(createGameDto: CreateGameDto): Promise < any > {
+  async create(createGameDto: CreateGameDto): Promise < GameResponseDto > {
     if (createGameDto.minesQuantity &&
       createGameDto.minesQuantity > (createGameDto.rowsQuantity * createGameDto.columnsQuantity) - 1) {
       throw new Error('Mines quantity cannot be equal or greater than cell numbers');
@@ -35,29 +34,18 @@ export class GameService {
     if (!createGameDto.minesQuantity) {
       createGameDto.minesQuantity = this.calculateMines(createGameDto.rowsQuantity, createGameDto.columnsQuantity);
     }
-    createGameDto.hideBoard = this.generateHideBoard(createGameDto.rowsQuantity, createGameDto.rowsQuantity, createGameDto.minesQuantity);
+    createGameDto.hideBoard = this.generateHideBoard(createGameDto.rowsQuantity, createGameDto.rowsQuantity,
+      createGameDto.minesQuantity);
     createGameDto.visibleBoard = this.generateVisibleBoard(createGameDto.rowsQuantity, createGameDto.rowsQuantity);
     createGameDto.status = 'running'
-    const createdGame = new this.gameModel(createGameDto);
-    await createdGame.save();
-    return {
-      gameId: createdGame._id,
-      creationDate: createdGame.creationDate,
-      status: createdGame.status,
-      minesQuantity: createdGame.minesQuantity,
-      board: this.getDisplayedBoard(createdGame.hideBoard, createdGame.visibleBoard, createdGame.flaggedCell).map(String),
-      username: createdGame.username,
-      //hideBoard: createdGame.hideBoard.map(String),
-      //visibleBoard: createdGame.visibleBoard.map(String)
-    };
+    const createdGame = await this.gameRepository.create(createGameDto);
+    return this.getGameResponse(createdGame);
   }
 
-  async revealCell(id: string, row: number, col: number): Promise < any > {
+  async revealCell(id: string, row: number, col: number): Promise < GameResponseDto > {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
     if (!idValid) throw new Error('Game not found!.')
-    let game: GameDocument = await this.gameModel.findOne({
-      _id: id
-    }).exec();
+    let game: GameDocument = await this.gameRepository.findOne(id);
     if (!game) throw new Error('Game not found!.')
     if (this.stoppedStatus.includes(game.status)) {
       throw new Error('You cannot play a game in ' + game.status + ' status.')
@@ -79,24 +67,14 @@ export class GameService {
         this.calculateMines(game.rowsQuantity, game.columnsQuantity))) {
       game.status = 'won';
     }
-    const updatedGame = await this.update(game._id, game);
-    return {
-      gameId: updatedGame._id,
-      creationDate: updatedGame.creationDate,
-      status: updatedGame.status,
-      minesQuantity: updatedGame.minesQuantity,
-      board: this.getDisplayedBoard(updatedGame.hideBoard, updatedGame.visibleBoard, game.flaggedCell).map(String),
-      //hideBoard: updatedGame.hideBoard.map(String),
-      //visibleBoard: updatedGame.visibleBoard.map(String)
-    };
+    const updatedGame = await this.gameRepository.update(game._id, game);
+    return this.getGameResponse(updatedGame);
   }
 
-  async flagCell(id: string, row: number, col: number) {
+  async flagCell(id: string, row: number, col: number): Promise<GameResponseDto> {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
     if (!idValid) throw new Error('Game not found!.')
-    let game: GameDocument = await this.gameModel.findOne({
-      _id: id
-    }).exec();
+    let game: GameDocument = await this.gameRepository.findOne(id);
     if (!game) throw new Error('Game not found!.')
     if (this.stoppedStatus.includes(game.status)) {
       throw new Error('You cannot play a game in ' + game.status + ' status.')
@@ -117,93 +95,46 @@ export class GameService {
       }
     }
     if (includeFlaggedCell) {
-      game.flaggedCell = game.flaggedCell.filter(({
-        row,
-        col
-      }) => (row != cell.row && col != cell.col));
+      game.flaggedCell.forEach((x, index) => {
+        if(x.row == cell.row && x.col == cell.col) {
+          game.flaggedCell.splice(index, 1);
+        }
+      })
     } else {
       game.flaggedCell.push(cell);
     }
-    const updatedGame = await this.gameModel.findOneAndUpdate({
-        _id: id
-      }, {
-        $set: {
-          flaggedCell: game.flaggedCell,
-        }
-      }, {
-        new: true
-      })
-      .exec();
-
-    return {
-      gameId: updatedGame._id,
-      creationDate: updatedGame.creationDate,
-      status: updatedGame.status,
-      minesQuantity: updatedGame.minesQuantity,
-      board: this.getDisplayedBoard(updatedGame.hideBoard, updatedGame.visibleBoard, updatedGame.flaggedCell).map(String),
-      //hideBoard: updatedGame.hideBoard.map(String),
-      //visibleBoard: updatedGame.visibleBoard.map(String)
-    };
+    const updatedGame = await this.gameRepository.update(id, game);
+    return this.getGameResponse(updatedGame);
   }
 
-  async findAll(): Promise < any[] > {
-    const findGames = await this.gameModel.find().exec();
+  async findAll(): Promise < GameResponseDto[] > {
+    const findGames = await this.gameRepository.findAll();
     const games = findGames.map((game) => {
-      return {
-        gameId: game._id,
-        creationDate: game.creationDate,
-        status: game.status,
-        minesQuantity: game.minesQuantity,
-        board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard, game.flaggedCell).map(String)
-      }
+      return this.getGameResponse(game);
     });
     return games
   }
 
-  async findOne(id: string): Promise < any > {
+  async findOne(id: string): Promise < GameResponseDto > {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
     if (!idValid) throw new Error('Game not found!.')
-    const game = await this.gameModel.findOne({
-      _id: id
-    }).exec();
-    if (game) {
-      return {
-        gameId: game._id,
-        creationDate: game.creationDate,
-        status: game.status,
-        minesQuantity: game.minesQuantity,
-        board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard, game.flaggedCell).map(String)
-      }
-    } else {
-      let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
-      if (!idValid) throw new Error('Game not found!.')
+    const game = await this.gameRepository.findOne(id);
+    if (!game) {
+      throw new Error('Game not found!')
     }
+    return this.getGameResponse(game);
   }
 
   async update(id: string, updateGame: UpdateGameDto | GameDocument): Promise < any > {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
     if (!idValid) throw new Error('Game not found!.')
-    return this.gameModel.findOneAndUpdate({
-        _id: id
-      }, {
-        $set: {
-          status: updateGame.status,
-          hideBoard: updateGame.hideBoard,
-          visibleBoard: updateGame.visibleBoard
-        }
-      }, {
-        new: true
-      })
-      .exec();
+    return this.gameRepository.update(id, updateGame);
   }
 
   async remove(id: string) {
     let idValid: boolean = mongoose.Types.ObjectId.isValid(id);
     if (!idValid) throw new Error('Game not found!.')
-    return this.gameModel.remove({
-      _id: id
-    }).exec();
-
+    return this.gameRepository.remove(id);
   }
 
   generateHideBoard(rows: number, columns: number, minesQuantity: number): number[][] {
@@ -311,5 +242,17 @@ export class GameService {
       });
     }
     return displayedBoard;
+  }
+
+  getGameResponse(gameDocument: GameDocument) {
+    const gameResponse: GameResponseDto = new GameResponseDto();
+    gameResponse.gameId = gameDocument._id;
+    gameResponse.creationDate = gameDocument.creationDate;
+    gameResponse.status = gameDocument.status
+    gameResponse.minesQuantity = gameDocument.minesQuantity;
+    gameResponse.board = this.getDisplayedBoard(gameDocument.hideBoard, gameDocument.visibleBoard,
+      gameDocument.flaggedCell).map(String);
+    gameResponse.username = gameDocument.username;
+    return gameResponse;
   }
 }
