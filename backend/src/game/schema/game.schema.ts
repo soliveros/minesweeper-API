@@ -28,6 +28,11 @@ export class Game {
     columnsQuantity: number;
 
     @Prop({
+        required: true
+    })
+    minesQuantity: number;
+
+    @Prop({
         required: true,
         enum: ['running', 'pause', 'won', 'lost']
     })

@@ -28,7 +28,14 @@ export class GameService {
   constructor(@InjectModel(Game.name) private gameModel: Model < GameDocument > ) {}
 
   async create(createGameDto: CreateGameDto): Promise < any > {
-    createGameDto.hideBoard = this.generateHideBoard(createGameDto.rowsQuantity, createGameDto.rowsQuantity);
+    if (createGameDto.minesQuantity &&
+      createGameDto.minesQuantity > (createGameDto.rowsQuantity * createGameDto.columnsQuantity) - 1) {
+      throw new Error('Mines quantity cannot be equal or greater than cell numbers');
+    }
+    if (!createGameDto.minesQuantity) {
+      createGameDto.minesQuantity = this.calculateMines(createGameDto.rowsQuantity, createGameDto.columnsQuantity);
+    }
+    createGameDto.hideBoard = this.generateHideBoard(createGameDto.rowsQuantity, createGameDto.rowsQuantity, createGameDto.minesQuantity);
     createGameDto.visibleBoard = this.generateVisibleBoard(createGameDto.rowsQuantity, createGameDto.rowsQuantity);
     createGameDto.status = 'running'
     const createdGame = new this.gameModel(createGameDto);
@@ -37,6 +44,7 @@ export class GameService {
       gameId: createdGame._id,
       creationDate: createdGame.creationDate,
       status: createdGame.status,
+      minesQuantity: createdGame.minesQuantity,
       board: this.getDisplayedBoard(createdGame.hideBoard, createdGame.visibleBoard, createdGame.flaggedCell).map(String),
       username: createdGame.username,
       //hideBoard: createdGame.hideBoard.map(String),
@@ -51,15 +59,15 @@ export class GameService {
       _id: id
     }).exec();
     if (!game) throw new Error('Game not found!.')
-    if(this.stoppedStatus.includes(game.status)) {
-      throw new Error('You cannot play a game in '+ game.status +' status.')
+    if (this.stoppedStatus.includes(game.status)) {
+      throw new Error('You cannot play a game in ' + game.status + ' status.')
     }
-    if(row > (game.rowsQuantity - 1)) 
-    throw new Error ('Max. value for row in this game is ' +  (game.rowsQuantity - 1).toString())
- 
-    if(col > (game.columnsQuantity - 1)) 
-    throw new Error ('Max. value for col in this game is ' +  (game.columnsQuantity - 1).toString())
-
+    if (row > (game.rowsQuantity - 1)) {
+      throw new Error('Max. value for row in this game is ' + (game.rowsQuantity - 1).toString())
+    }
+    if (col > (game.columnsQuantity - 1)) {
+      throw new Error('Max. value for col in this game is ' + (game.columnsQuantity - 1).toString())
+    }
     this.visibleBoard = game.visibleBoard;
     this.hideBoard = game.hideBoard;
     this.recursiveRevealCell(row, col)
@@ -76,6 +84,7 @@ export class GameService {
       gameId: updatedGame._id,
       creationDate: updatedGame.creationDate,
       status: updatedGame.status,
+      minesQuantity: updatedGame.minesQuantity,
       board: this.getDisplayedBoard(updatedGame.hideBoard, updatedGame.visibleBoard, game.flaggedCell).map(String),
       //hideBoard: updatedGame.hideBoard.map(String),
       //visibleBoard: updatedGame.visibleBoard.map(String)
@@ -89,23 +98,23 @@ export class GameService {
       _id: id
     }).exec();
     if (!game) throw new Error('Game not found!.')
-    if(this.stoppedStatus.includes(game.status)) {
-      throw new Error('You cannot play a game in '+ game.status +' status.')
+    if (this.stoppedStatus.includes(game.status)) {
+      throw new Error('You cannot play a game in ' + game.status + ' status.')
     }
-    if(row > (game.rowsQuantity - 1)) 
-    throw new Error ('Max. value for row in this game is ' +  (game.rowsQuantity - 1).toString())
- 
-    if(col > (game.columnsQuantity - 1)) 
-    throw new Error ('Max. value for col in this game is ' +  (game.columnsQuantity - 1).toString())
+    if (row > (game.rowsQuantity - 1))
+      throw new Error('Max. value for row in this game is ' + (game.rowsQuantity - 1).toString())
+
+    if (col > (game.columnsQuantity - 1))
+      throw new Error('Max. value for col in this game is ' + (game.columnsQuantity - 1).toString())
     const cell = {
       row: row,
       col: col
     };
     let includeFlaggedCell: boolean = false;
     for (const flagedCell of game.flaggedCell) {
-      if(flagedCell.row == cell.row && flagedCell.col == cell.col) {
+      if (flagedCell.row == cell.row && flagedCell.col == cell.col) {
         includeFlaggedCell = true;
-      } 
+      }
     }
     if (includeFlaggedCell) {
       game.flaggedCell = game.flaggedCell.filter(({
@@ -130,6 +139,7 @@ export class GameService {
       gameId: updatedGame._id,
       creationDate: updatedGame.creationDate,
       status: updatedGame.status,
+      minesQuantity: updatedGame.minesQuantity,
       board: this.getDisplayedBoard(updatedGame.hideBoard, updatedGame.visibleBoard, updatedGame.flaggedCell).map(String),
       //hideBoard: updatedGame.hideBoard.map(String),
       //visibleBoard: updatedGame.visibleBoard.map(String)
@@ -142,6 +152,8 @@ export class GameService {
       return {
         gameId: game._id,
         creationDate: game.creationDate,
+        status: game.status,
+        minesQuantity: game.minesQuantity,
         board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard, game.flaggedCell).map(String)
       }
     });
@@ -158,6 +170,8 @@ export class GameService {
       return {
         gameId: game._id,
         creationDate: game.creationDate,
+        status: game.status,
+        minesQuantity: game.minesQuantity,
         board: this.getDisplayedBoard(game.hideBoard, game.visibleBoard, game.flaggedCell).map(String)
       }
     } else {
@@ -192,7 +206,7 @@ export class GameService {
 
   }
 
-  generateHideBoard(rows: number, columns: number): number[][] {
+  generateHideBoard(rows: number, columns: number, minesQuantity: number): number[][] {
     let hideBoard: number[][] = [];
     for (let i = 0; i < rows; i++) {
       hideBoard[i] = [];
@@ -200,7 +214,7 @@ export class GameService {
         hideBoard[i][j] = 0;
       }
     }
-    return this.addMines(hideBoard);
+    return this.addMines(hideBoard, minesQuantity);
   }
 
   generateVisibleBoard(rows: number, columns: number): boolean[][] {
@@ -214,10 +228,9 @@ export class GameService {
     return visibleBoard;
   }
 
-  addMines(hideBoard: number[][]): number[][] {
+  addMines(hideBoard: number[][], minesQuantity: number): number[][] {
     let addedMines: number = 0;
-    let totalMines: number = this.calculateMines(hideBoard.length, hideBoard[0].length);
-    while (addedMines < totalMines) {
+    while (addedMines < minesQuantity) {
       var row = Math.floor(Math.random() * hideBoard.length);
       var col = Math.floor(Math.random() * hideBoard[0].length);
       if (hideBoard[row][col] != 9) {
@@ -244,7 +257,7 @@ export class GameService {
       this.visibleBoard[row][col] = true;
       if (this.hideBoard[row][col] == 0) {
         for (let i = Math.max(row - 1, 0); i <= Math.min(row + 1, this.hideBoard.length - 1); i++) {
-          for (let j = Math.max(col - 1,0); j <= Math.min(col + 1, this.hideBoard[0].length - 1); j++) {
+          for (let j = Math.max(col - 1, 0); j <= Math.min(col + 1, this.hideBoard[0].length - 1); j++) {
             if (this.hideBoard[i][j] != 9) {
               this.recursiveRevealCell(i, j);
             }
@@ -275,7 +288,7 @@ export class GameService {
     }
   }
 
-  getDisplayedBoard(hideBoard: number[][], visibleBoard: boolean[][], flaggedCell : {
+  getDisplayedBoard(hideBoard: number[][], visibleBoard: boolean[][], flaggedCell: {
     row: number,
     col: number
   } []): string[][] {
