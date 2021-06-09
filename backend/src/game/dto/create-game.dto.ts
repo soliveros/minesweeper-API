@@ -34,6 +34,12 @@ export class CreateGameDto {
     @IsNotEmpty()
     @IsString()
     username: string;
+
+    @ApiProperty({
+        example: 10,
+        description: 'Number of mines (Optional parameter). If it is not provided, it will be auto-generated.'
+    })
+    minesQuantity: number;
     status: string;
     hideBoard: number[][];
     visibleBoard: boolean[][];
